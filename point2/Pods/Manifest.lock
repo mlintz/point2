@@ -1,0 +1,18 @@
+PODS:
+  - Alamofire (4.4.0)
+  - Projection (0.0.6)
+  - SwiftyDropbox (4.2.2):
+    - Alamofire (~> 4.4.0)
+
+DEPENDENCIES:
+  - Projection
+  - SwiftyDropbox
+
+SPEC CHECKSUMS:
+  Alamofire: dc44b1600b800eb63da6a19039a0083d62a6a62d
+  Projection: fcff0f4121e91c9998c67b0293d280f694c2a02a
+  SwiftyDropbox: 7b9cf3cc29e3d1b67dc8b7f1aa65c049bb122a34
+
+PODFILE CHECKSUM: 69cb51fe935ebf774a73e61c52abc0a1fa2f9fcd
+
+COCOAPODS: 1.1.1

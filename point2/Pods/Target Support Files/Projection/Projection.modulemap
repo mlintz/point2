@@ -1,0 +1,6 @@
+framework module Projection {
+  umbrella header "Projection-umbrella.h"
+
+  export *
+  module * { export * }
+}
