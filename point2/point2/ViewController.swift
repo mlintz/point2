@@ -16,7 +16,29 @@ final class ViewController: UIViewController {
   private var inputTextView: UITextView!
   private var statusLabel: UILabel!
   private var submitButton: UIButton!
-  private var contentTextView: UITextView!
+  fileprivate var contentTextView: UITextView!
+  var store: Store? {
+    willSet {
+      guard store == nil else {
+        preconditionFailure("Store can only be set once")
+      }
+    }
+    didSet {
+      store!.delegate = self
+      store!.downloadLatestContentIfIdle()
+      updateStatusLabel()
+    }
+  }
+
+  static var shared: ViewController?
+
+  required init?(coder: NSCoder) {
+    super.init(coder: coder)
+    guard ViewController.shared == nil else {
+      fatalError("ViewController already exists")
+    }
+    ViewController.shared = self
+  }
 
   override func viewDidLoad() {
     super.viewDidLoad()
@@ -27,7 +49,7 @@ final class ViewController: UIViewController {
     view.addSubview(inputTextView)
 
     statusLabel = UILabel()
-    statusLabel.text = "Status"
+    statusLabel.text = "Store not initialized"
     statusLabel.backgroundColor = .red
     statusLabel.textColor = .white
     view.addSubview(statusLabel)
@@ -43,7 +65,6 @@ final class ViewController: UIViewController {
     contentTextView.backgroundColor = .lightGray
     contentTextView.font = inputTextView.font
     contentTextView.textColor = .white
-    contentTextView.text = "foo"
     view.addSubview(contentTextView)
 
     // Do any additional setup after loading the view, typically from a nib.
@@ -84,19 +105,21 @@ final class ViewController: UIViewController {
       }
       return
     }
-    let request = client.files.download(path: path)
-    request.response { response, error in
-      guard let file = response?.1, let metadata = response?.0 else {
-        fatalError("\(error!)")
-      }
+    store = Store(filesClient: client.files)
 
-      let rev = metadata.rev
-      let uploadData = "doodlydoo".data(using: .utf8)!
-      let uploadRequest = client.files.upload(path: path, mode: .update(rev), autorename: true, clientModified: nil, mute: false, input: uploadData)
-      uploadRequest.response { response, error in
-        print(response)
-        print(error)
-      }
+//    let request = client.files.download(path: path)
+//    request.response { response, error in
+//      guard let file = response?.1, let metadata = response?.0 else {
+//        fatalError("\(error!)")
+//      }
+//
+//      let rev = metadata.rev
+//      let uploadData = "doodlydoo".data(using: .utf8)!
+//      let uploadRequest = client.files.upload(path: path, mode: .update(rev), autorename: true, clientModified: nil, mute: false, input: uploadData)
+//      uploadRequest.response { response, error in
+//        print(response)
+//        print(error)
+//      }
 
 //      if let response = response {
 //        let string = String(data: response.1, encoding: .utf8)
@@ -104,7 +127,29 @@ final class ViewController: UIViewController {
 //      } else if let error = error {
 //        print(error)
 //      }
+//    }
+  }
+
+  fileprivate func updateStatusLabel() {
+    var statusLabelText: String
+    switch store!.syncState {
+    case .idle:
+      statusLabelText = "Idle"
+    case .downloading(newItemsIdle: let idle):
+      statusLabelText = "Downloading with \(idle.count) idle items"
+    case .uploading(newItemsUploading: let uploading, newItemsIdle: let idle):
+      statusLabelText = "Uploading \(uploading.count) items with \(idle.count) idle items"
     }
+    statusLabel.text = statusLabelText
   }
 }
 
+extension ViewController: StoreDelegate {
+  func syncStateDidChange(state: SyncState) {
+      updateStatusLabel()
+  }
+
+  func contentDidChange(content: String) {
+    contentTextView.text = content
+  }
+}
