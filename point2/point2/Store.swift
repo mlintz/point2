@@ -44,7 +44,7 @@ protocol StoreDelegate: class {
 }
 
 final class Store {
-  private static let path = "/!point2.txt"
+  private static let path = "/!!inbox.txt"
 
   private var serverState: ServerState
   private(set) var syncState: SyncState = .idle {
