@@ -58,6 +58,7 @@ final class ViewController: UIViewController {
     submitButton.setTitle("Submit", for: .normal)
     submitButton.setTitleColor(.lightGray, for: .normal)
     submitButton.setBackgroundColor(color: .gray, for: .normal)
+    submitButton.addTarget(self, action: #selector(handleSubmit), for: .touchUpInside)
     view.addSubview(submitButton)
 
     contentTextView = UITextView()
@@ -68,6 +69,14 @@ final class ViewController: UIViewController {
     view.addSubview(contentTextView)
 
     // Do any additional setup after loading the view, typically from a nib.
+  }
+
+  @objc private func handleSubmit() {
+    guard let content = inputTextView.text, !content.isEmpty else {
+      return
+    }
+    inputTextView.text = ""
+    store!.appendItem(item: content)
   }
 
   override func viewWillLayoutSubviews() {
