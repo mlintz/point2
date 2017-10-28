@@ -13,9 +13,12 @@ import Projection
 private let path = "/!point2.txt"
 
 final class ViewController: UIViewController {
+  private static let defaultPrefix = "- "
+
   private var inputTextView: UITextView!
   private var statusLabel: UILabel!
   private var submitButton: UIButton!
+  private var keyboardHeight = CGFloat(0)
   fileprivate var contentTextView: UITextView!
   var store: Store? {
     willSet {
@@ -46,6 +49,7 @@ final class ViewController: UIViewController {
     inputTextView.backgroundColor = .black
     inputTextView.font = UIFont.systemFont(ofSize: 18)
     inputTextView.textColor = .gray
+    inputTextView.text = ViewController.defaultPrefix
     view.addSubview(inputTextView)
 
     statusLabel = UILabel()
@@ -62,43 +66,73 @@ final class ViewController: UIViewController {
     view.addSubview(submitButton)
 
     contentTextView = UITextView()
+    contentTextView.text = ""
     contentTextView.isEditable = false
     contentTextView.backgroundColor = .lightGray
     contentTextView.font = inputTextView.font
     contentTextView.textColor = .white
     view.addSubview(contentTextView)
+
+    NotificationCenter.default.addObserver(self, selector: #selector(keyboardDidShow(_:)), name: .UIKeyboardWillShow, object: nil)
+    NotificationCenter.default.addObserver(self, selector: #selector(keyboardDidHide(_:)), name: .UIKeyboardWillHide, object: nil)
   }
 
-  @objc private func handleSubmit() {
+  @objc private func keyboardDidShow(_ notification: NSNotification) {
+    let userInfo = notification.userInfo!
+    let keyboardRect = userInfo[UIKeyboardFrameEndUserInfoKey]! as! CGRect
+    let duration = userInfo[UIKeyboardAnimationDurationUserInfoKey]! as! TimeInterval
+    keyboardHeight = keyboardRect.height
+    view.setNeedsLayout()
+    UIView.animate(withDuration: duration) {
+      self.view.layoutIfNeeded()
+      let offsetY = self.contentTextView.contentSize.height - self.contentTextView.bounds.height
+      self.contentTextView.setContentOffset(CGPoint(x: 0, y: max(0, offsetY)), animated: true)
+    }
+  }
+
+  @objc private func keyboardDidHide(_ notification: NSNotification) {
+    let userInfo = notification.userInfo!
+    let duration = userInfo[UIKeyboardAnimationDurationUserInfoKey]! as! TimeInterval
+    keyboardHeight = 0
+    view.setNeedsLayout()
+    UIView.animate(withDuration: duration) {
+      self.view.layoutIfNeeded()
+      let offsetY = self.contentTextView.contentSize.height - self.contentTextView.bounds.height
+      self.contentTextView.setContentOffset(CGPoint(x: 0, y: max(0, offsetY)), animated: true)
+    }
+  }
+
+  @objc private func handleSubmit(_ notification: NSNotification) {
     guard let content = inputTextView.text, !content.isEmpty else {
       return
     }
-    inputTextView.text = ""
+    inputTextView.text = ViewController.defaultPrefix
     store!.appendItem(item: content)
   }
 
   override func viewWillLayoutSubviews() {
     super.viewWillLayoutSubviews()
     view.prj_applyProjection { m, bounds in
-      m[inputTextView]
-        .top(view.safeAreaLayoutGuide.layoutFrame.minY)
+      m[contentTextView]
+        .left(bounds.left)
+        .right(bounds.right)
+        .height((bounds.bottom - keyboardHeight) / 2)
+        .bottom(bounds.bottom - keyboardHeight)
+
+      m[submitButton]
+        .bottomLeft(m[contentTextView].topLeft)
+        .height(60)
         .width(bounds.width)
-        .left(0)
-        .bottom(bounds.height/2 - 80)
 
       m[statusLabel]
-        .topLeft(m[inputTextView].bottomLeft)
+        .bottomLeft(m[submitButton].topLeft)
         .height(statusLabel.font.lineHeight)
         .width(bounds.width)
 
-      m[submitButton]
-        .topLeft(m[statusLabel].bottomLeft)
-        .bottom(bounds.height/2)
+      m[inputTextView]
+        .top(view.safeAreaLayoutGuide.layoutFrame.minY)
+        .bottomLeft(m[statusLabel].topLeft)
         .width(bounds.width)
-
-      m[contentTextView]
-        .topLeft(m[submitButton].bottomLeft)
-        .bottomRight(bounds.bottomRight)
     }
   }
 
@@ -113,28 +147,6 @@ final class ViewController: UIViewController {
       return
     }
     store = Store(filesClient: client.files)
-
-//    let request = client.files.download(path: path)
-//    request.response { response, error in
-//      guard let file = response?.1, let metadata = response?.0 else {
-//        fatalError("\(error!)")
-//      }
-//
-//      let rev = metadata.rev
-//      let uploadData = "doodlydoo".data(using: .utf8)!
-//      let uploadRequest = client.files.upload(path: path, mode: .update(rev), autorename: true, clientModified: nil, mute: false, input: uploadData)
-//      uploadRequest.response { response, error in
-//        print(response)
-//        print(error)
-//      }
-
-//      if let response = response {
-//        let string = String(data: response.1, encoding: .utf8)
-//        print(string!)
-//      } else if let error = error {
-//        print(error)
-//      }
-//    }
   }
 
   fileprivate func updateStatusLabel() {
@@ -157,6 +169,10 @@ extension ViewController: StoreDelegate {
   }
 
   func contentDidChange(content: String) {
-    contentTextView.text = content
+    if content != contentTextView.text {
+      contentTextView.text = content
+      let offsetY = contentTextView.contentSize.height - contentTextView.bounds.height
+      contentTextView.setContentOffset(CGPoint(x: 0, y: max(0, offsetY)), animated: true)
+    }
   }
 }

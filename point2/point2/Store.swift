@@ -13,7 +13,7 @@ import SwiftyDropbox
 
 struct ServerState {
   var data: Data
-  var revision: String
+  var revision: String?
 }
 
 enum SyncState {
@@ -46,7 +46,7 @@ protocol StoreDelegate: class {
 final class Store {
   private static let path = "/!point2.txt"
 
-  private var serverState: ServerState?
+  private var serverState: ServerState
   private(set) var syncState: SyncState = .idle {
     didSet {
       delegate!.syncStateDidChange(state: syncState)
@@ -58,6 +58,7 @@ final class Store {
 
   init(filesClient: FilesRoutes) {
     self.filesClient = filesClient
+    serverState = ServerState(data: Data(), revision: nil)
     getLatestCursorThenLongPoll(cursor: nil)
   }
 
@@ -129,7 +130,7 @@ final class Store {
       }
 
       self.serverState = ServerState(data: response.1, revision: response.0.rev)
-      self.delegate!.contentDidChange(content: self.syncState.contentWithServerData(data: self.serverState!.data))
+      self.delegate!.contentDidChange(content: self.syncState.contentWithServerData(data: self.serverState.data))
       guard idle.isEmpty else {
         self.syncState = .uploading(newItemsUploading: idle, newItemsIdle: [])
         self.uploadSyncState()
@@ -156,7 +157,7 @@ final class Store {
       idle.append(item)
       syncState = .uploading(newItemsUploading: uploading, newItemsIdle: idle)
     }
-    delegate!.contentDidChange(content: syncState.contentWithServerData(data: serverState!.data))
+    delegate!.contentDidChange(content: syncState.contentWithServerData(data: serverState.data))
   }
 
   private func uploadSyncState() {
@@ -164,11 +165,11 @@ final class Store {
       preconditionFailure("Expected sync state: .uploading. Received: \(syncState)")
     }
 
-    let input = syncState.contentWithServerData(data: serverState!.data).data(using: .utf8)!
+    let input = syncState.contentWithServerData(data: serverState.data).data(using: .utf8)!
 
     filesClient.upload(
       path: Store.path,
-      mode: .update(self.serverState!.revision),
+      mode: .update(self.serverState.revision!),
       autorename: true,
       clientModified: nil,
       mute: false,
