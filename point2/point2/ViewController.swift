@@ -57,6 +57,7 @@ final class ViewController: UIViewController {
     inputTextField.textColor = .gray
     inputTextField.text = ViewController.defaultPrefix
     inputTextField.delegate = self
+    inputTextField.autocorrectionType = .no
     view.addSubview(inputTextField)
 
     statusLabel = UILabel()
@@ -120,26 +121,27 @@ final class ViewController: UIViewController {
   override func viewWillLayoutSubviews() {
     super.viewWillLayoutSubviews()
     view.prj_applyProjection { m, bounds in
-      m[inputTextField]
+      m[statusLabel]
         .top(view.safeAreaLayoutGuide.layoutFrame.minY)
+        .left(bounds.left)
+        .height(statusLabel.font.lineHeight)
+        .width(bounds.width)
+
+      m[inputTextField]
+        .bottom(bounds.bottom - keyboardHeight)
         .left(bounds.left)
         .width(bounds.width)
         .height(inputTextField.font!.lineHeight + 20)
 
-      m[statusLabel]
-        .topLeft(m[inputTextField].bottomLeft)
-        .height(statusLabel.font.lineHeight)
-        .width(bounds.width)
-
-      m[submitButton]
-        .topLeft(m[statusLabel].bottomLeft)
-        .height(60)
-        .width(bounds.width)
-
       m[contentTextView]
-        .topLeft(m[submitButton].bottomLeft)
-        .right(bounds.right)
-        .bottom(bounds.bottom - keyboardHeight)
+        .topLeft(m[statusLabel].bottomLeft)
+        .bottomRight(m[inputTextField].topRight)
+
+//      m[submitButton]
+//        .topLeft(m[statusLabel].bottomLeft)
+//        .height(60)
+//        .width(bounds.width)
+
     }
   }
 
@@ -158,15 +160,24 @@ final class ViewController: UIViewController {
 
   fileprivate func updateStatusLabel() {
     var statusLabelText: String
+    var statusLabelColor: UIColor
     switch store!.syncState {
     case .idle:
       statusLabelText = "Idle"
+      statusLabelColor = .black
     case .downloading(newItemsIdle: let idle):
       statusLabelText = "Downloading with \(idle.count) idle items"
+      if idle.isEmpty {
+        statusLabelColor = .black
+      } else {
+        statusLabelColor = .red
+      }
     case .uploading(newItemsUploading: let uploading, newItemsIdle: let idle):
       statusLabelText = "Uploading \(uploading.count) items with \(idle.count) idle items"
+      statusLabelColor = .red
     }
     statusLabel.text = statusLabelText
+    statusLabel.backgroundColor = statusLabelColor
   }
 }
 
