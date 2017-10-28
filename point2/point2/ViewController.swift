@@ -15,7 +15,7 @@ private let path = "/!point2.txt"
 final class ViewController: UIViewController {
   private static let defaultPrefix = "- "
 
-  private var inputTextView: UITextView!
+  private var inputTextField: UITextField!
   private var statusLabel: UILabel!
   private var submitButton: UIButton!
   private var keyboardHeight = CGFloat(0)
@@ -43,14 +43,21 @@ final class ViewController: UIViewController {
     ViewController.shared = self
   }
 
+  override var prefersStatusBarHidden: Bool {
+    return true
+  }
+
   override func viewDidLoad() {
     super.viewDidLoad()
-    inputTextView = UITextView()
-    inputTextView.backgroundColor = .black
-    inputTextView.font = UIFont.systemFont(ofSize: 18)
-    inputTextView.textColor = .gray
-    inputTextView.text = ViewController.defaultPrefix
-    view.addSubview(inputTextView)
+    view.backgroundColor = .black
+
+    inputTextField = UITextField()
+    inputTextField.backgroundColor = .black
+    inputTextField.font = UIFont.systemFont(ofSize: 24)
+    inputTextField.textColor = .gray
+    inputTextField.text = ViewController.defaultPrefix
+    inputTextField.delegate = self
+    view.addSubview(inputTextField)
 
     statusLabel = UILabel()
     statusLabel.text = "Store not initialized"
@@ -68,9 +75,9 @@ final class ViewController: UIViewController {
     contentTextView = UITextView()
     contentTextView.text = ""
     contentTextView.isEditable = false
-    contentTextView.backgroundColor = .lightGray
-    contentTextView.font = inputTextView.font
-    contentTextView.textColor = .white
+    contentTextView.backgroundColor = .black
+    contentTextView.font = inputTextField.font
+    contentTextView.textColor = .gray
     view.addSubview(contentTextView)
 
     NotificationCenter.default.addObserver(self, selector: #selector(keyboardDidShow(_:)), name: .UIKeyboardWillShow, object: nil)
@@ -102,43 +109,43 @@ final class ViewController: UIViewController {
     }
   }
 
-  @objc private func handleSubmit(_ notification: NSNotification) {
-    guard let content = inputTextView.text, !content.isEmpty else {
+  @objc private func handleSubmit() {
+    guard let content = inputTextField.text, !content.isEmpty else {
       return
     }
-    inputTextView.text = ViewController.defaultPrefix
+    inputTextField.text = ViewController.defaultPrefix
     store!.appendItem(item: content)
   }
 
   override func viewWillLayoutSubviews() {
     super.viewWillLayoutSubviews()
     view.prj_applyProjection { m, bounds in
-      m[contentTextView]
+      m[inputTextField]
+        .top(view.safeAreaLayoutGuide.layoutFrame.minY)
         .left(bounds.left)
-        .right(bounds.right)
-        .height((bounds.bottom - keyboardHeight) / 2)
-        .bottom(bounds.bottom - keyboardHeight)
-
-      m[submitButton]
-        .bottomLeft(m[contentTextView].topLeft)
-        .height(60)
         .width(bounds.width)
+        .height(inputTextField.font!.lineHeight + 20)
 
       m[statusLabel]
-        .bottomLeft(m[submitButton].topLeft)
+        .topLeft(m[inputTextField].bottomLeft)
         .height(statusLabel.font.lineHeight)
         .width(bounds.width)
 
-      m[inputTextView]
-        .top(view.safeAreaLayoutGuide.layoutFrame.minY)
-        .bottomLeft(m[statusLabel].topLeft)
+      m[submitButton]
+        .topLeft(m[statusLabel].bottomLeft)
+        .height(60)
         .width(bounds.width)
+
+      m[contentTextView]
+        .topLeft(m[submitButton].bottomLeft)
+        .right(bounds.right)
+        .bottom(bounds.bottom - keyboardHeight)
     }
   }
 
   override func viewDidAppear(_ animated: Bool) {
     super.viewDidAppear(animated)
-    inputTextView.becomeFirstResponder()
+    inputTextField.becomeFirstResponder()
 
     guard let client = DropboxClientsManager.authorizedClient else {
       DropboxClientsManager.authorizeFromController(UIApplication.shared, controller: self) { url in
@@ -174,5 +181,16 @@ extension ViewController: StoreDelegate {
       let offsetY = contentTextView.contentSize.height - contentTextView.bounds.height
       contentTextView.setContentOffset(CGPoint(x: 0, y: max(0, offsetY)), animated: true)
     }
+  }
+}
+
+extension ViewController: UITextFieldDelegate {
+  func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+    handleSubmit()
+    return true
+  }
+
+  func textFieldShouldEndEditing(_ textField: UITextField) -> Bool {
+    return false
   }
 }
