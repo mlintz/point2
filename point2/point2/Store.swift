@@ -195,6 +195,7 @@ final class Store {
       self.serverState = ServerState(data: input, revision: response.rev)
       guard idle.isEmpty else {
         self.syncState = .uploading(newItemsUploading: idle, newItemsIdle: [])
+        self.uploadSyncState()
         return
       }
       self.syncState = .idle

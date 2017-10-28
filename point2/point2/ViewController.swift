@@ -62,13 +62,11 @@ final class ViewController: UIViewController {
     view.addSubview(submitButton)
 
     contentTextView = UITextView()
-    contentTextView.isUserInteractionEnabled = false
+    contentTextView.isEditable = false
     contentTextView.backgroundColor = .lightGray
     contentTextView.font = inputTextView.font
     contentTextView.textColor = .white
     view.addSubview(contentTextView)
-
-    // Do any additional setup after loading the view, typically from a nib.
   }
 
   @objc private func handleSubmit() {
