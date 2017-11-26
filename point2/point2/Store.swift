@@ -121,7 +121,7 @@ final class Store {
           fatalError("unreachable")
         }
         print("Retrying download due to error: \(err)")
-        self.downloadLatestContentIfIdle()
+        self.downloadLatestContent()
         return
       }
 

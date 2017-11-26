@@ -10,8 +10,6 @@ import UIKit
 import SwiftyDropbox
 import Projection
 
-private let path = "/!point2.txt"
-
 final class ViewController: UIViewController {
   private static let defaultPrefix = "- "
 
